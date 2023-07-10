@@ -1,15 +1,18 @@
 CUSTOMERS = [
     {
         "id": 1,
-        "name": "Jonathan",
+        "email": "jjd@funny.com",
+        "fullName": "Jonathan",
     },
     {
         "id": 2,
-        "name": "Belle",
+        "email": "belle@belle.com",
+        "fullName": "Belle",
     },
     {
         "id": 3,
-        "name": "Chesney",
+        "email": "chesney@fakename.com",
+        "fullName": "Chesney",
     }
 ]
 
@@ -50,3 +53,18 @@ def get_single_customer(id):
             requested_customer = customer
 
     return requested_customer
+
+def delete_customer(id):
+    # Initial -1 value for customer index, in case one isn't found
+    customer_index = -1
+
+    # Iterate the customerS list, but use enumerate() so that you
+    # can access the index value of each item
+    for index, customer in enumerate(CUSTOMERS):
+        if customer["id"] == id:
+            # Found the customer. Store the current index.
+            customer_index = index
+
+    # If the customer was found, use pop(int) to remove it from list
+    if customer_index >= 0:
+        CUSTOMERS.pop(customer_index)
