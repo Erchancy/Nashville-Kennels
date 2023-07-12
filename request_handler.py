@@ -6,7 +6,6 @@ from views import get_all_animals, get_single_animal, create_animal, delete_anim
     get_all_customers, get_single_customer, create_customer, delete_customer, update_customer
 
 
-
 # Here's a class. It inherits from another class.
 # For now, think of a class as a container for functions that
 # work together for a common purpose. In this case, that
@@ -59,7 +58,7 @@ class HandleRequests(BaseHTTPRequestHandler):
 
         if response is None:
             self._set_headers(404)
-            response = { "message": f"Animal {id} is out playing right now" }
+            response = {"message": f"Animal {id} is out playing right now"}
 
         else:
             # Set the response code to 'Ok'
@@ -70,7 +69,6 @@ class HandleRequests(BaseHTTPRequestHandler):
     # Here's a method on the class that overrides the parent's method.
     # It handles any POST request.
     def do_POST(self):
-        self._set_headers(201)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
 
@@ -96,8 +94,35 @@ class HandleRequests(BaseHTTPRequestHandler):
         # the orange squiggle, you'll define the create_animal
         # function next.
         if resource == "animals":
+            if post_body.get("name") is None:
+                self._set_headers(400)
+                response = {"message": " name is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("species") is None:
+                self._set_headers(400)
+                response = {"message": " species is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("locationId") is None:
+                self._set_headers(400)
+                response = {"message": " locationId is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("customerId") is None:
+                self._set_headers(400)
+                response = {"message": " customerId is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("status") is None:
+                self._set_headers(400)
+                response = {"message": " status is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            
             new_animal = create_animal(post_body)
             response = new_animal
+
 
         if resource == "locations":
             new_location = create_location(post_body)
@@ -111,6 +136,7 @@ class HandleRequests(BaseHTTPRequestHandler):
             new_customer = create_customer(post_body)
             response = new_customer
 
+        self._set_headers(201)
         # Encode the new animal and send in response
         self.wfile.write(json.dumps(response).encode())
 
@@ -188,10 +214,9 @@ class HandleRequests(BaseHTTPRequestHandler):
             pass  # Request had trailing slash: /animals/
 
         return (resource, id)  # This is a tuple
-    
+
     def do_DELETE(self):
-        # Set a 204 response code
-        self._set_headers(204)
+        
 
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
@@ -210,8 +235,12 @@ class HandleRequests(BaseHTTPRequestHandler):
 
         # Delete a single customer from the list
         if resource == "customers":
-            delete_customer(id)
+            self._set_headers(405)
+            self.wfile.write("Not Allowed".encode())
+            return
 
+        # Set a 204 response code
+        self._set_headers(204)
         self.wfile.write("".encode())
 
 
