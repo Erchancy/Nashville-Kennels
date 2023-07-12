@@ -24,8 +24,6 @@ class HandleRequests(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handles GET requests to the server
         """
-        # Set the response code to 'Ok'
-        self._set_headers(200)
         response = {}  # Default response
 
         # Parse the URL and capture the tuple that is returned
@@ -58,6 +56,14 @@ class HandleRequests(BaseHTTPRequestHandler):
 
             else:
                 response = get_all_customers()
+
+        if response is None:
+            self._set_headers(404)
+            response = { "message": f"Animal {id} is out playing right now" }
+
+        else:
+            # Set the response code to 'Ok'
+            self._set_headers(200)
 
         self.wfile.write(json.dumps(response).encode())
 

@@ -1,3 +1,6 @@
+from .location_requests import get_single_location
+from .customer_requests import get_single_customer
+
 ANIMALS = [
     {
         "id": 1,
@@ -57,6 +60,15 @@ def get_single_animal(id):
         # instead of the dot notation that JavaScript used.
         if animal["id"] == id:
             requested_animal = animal
+
+            matching_location = get_single_location(requested_animal["locationId"])
+            requested_animal["location"] = matching_location
+
+            matching_customer = get_single_customer(requested_animal["customerId"])
+            requested_animal["customer"] = matching_customer
+
+            requested_animal.pop("locationId")
+            requested_animal.pop("customerId")
 
     return requested_animal
 
