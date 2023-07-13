@@ -1,12 +1,16 @@
 import json
-from repository import all, retrieve, create, update, delete
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from views import get_all_animals, get_single_animal, create_animal, delete_animal, update_animal, \
+    get_all_locations, get_single_location, create_location, delete_location, update_location,\
+    get_all_employees, get_single_employee, create_employee, delete_employee, update_employee,\
+    get_all_customers, get_single_customer, create_customer, update_customer
+
 
 method_mapper = {
-    "animals": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
-    "locations": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
-    "customers": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
-    "employees": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete}
+    "animals": {"single": get_single_animal, "all": get_all_animals},
+    "locations": {"single": get_single_location, "all": get_all_locations},
+    "customers": {"single": get_single_customer, "all": get_all_customers},
+    "employees": {"single": get_single_employee, "all": get_all_employees}
 }
 
 # Here's a class. It inherits from another class.
@@ -23,7 +27,7 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def get_all_or_single(self, resource, id):
         if id is not None:
-            response = method_mapper[resource]["single"](resource, id)
+            response = method_mapper[resource]["single"](id)
 
             if response is not None:
                 self._set_headers(200)
@@ -32,7 +36,7 @@ class HandleRequests(BaseHTTPRequestHandler):
                 response = ''
         else:
             self._set_headers(200)
-            response = method_mapper[resource]["all"](resource)
+            response = method_mapper[resource]["all"]()
 
         return response
 
@@ -56,7 +60,62 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        response = method_mapper[resource]["create"](resource, post_body)
+        # Initialize new animal
+        new_animal = None
+
+        # Initialize new location
+        new_location = None
+
+        # Initialize new employee
+        new_employee = None
+
+        # Initialize new customer
+        new_customer = None
+
+        # Add a new animal to the list. Don't worry about
+        # the orange squiggle, you'll define the create_animal
+        # function next.
+        if resource == "animals":
+            if post_body.get("name") is None:
+                self._set_headers(400)
+                response = {"message": " name is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("species") is None:
+                self._set_headers(400)
+                response = {"message": " species is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("locationId") is None:
+                self._set_headers(400)
+                response = {"message": " locationId is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("customerId") is None:
+                self._set_headers(400)
+                response = {"message": " customerId is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+            if post_body.get("status") is None:
+                self._set_headers(400)
+                response = {"message": " status is required "}
+                self.wfile.write(json.dumps(response).encode())
+                return
+
+            new_animal = create_animal(post_body)
+            response = new_animal
+
+        if resource == "locations":
+            new_location = create_location(post_body)
+            response = new_location
+
+        if resource == "employees":
+            new_employee = create_employee(post_body)
+            response = new_employee
+
+        if resource == "customers":
+            new_customer = create_customer(post_body)
+            response = new_customer
 
         self._set_headers(201)
         # Encode the new animal and send in response
@@ -72,7 +131,21 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        method_mapper[resource]["update"](id, resource, post_body)
+        # Delete a single animal from the list
+        if resource == "animals":
+            update_animal(id, post_body)
+
+        # Delete a single location from the list
+        if resource == "locations":
+            update_location(id, post_body)
+
+        # Delete a single employee from the list
+        if resource == "employees":
+            update_employee(id, post_body)
+
+        # Delete a single customer from the list
+        if resource == "customers":
+            update_customer(id, post_body)
 
         # Encode the new animal and send in response
         self.wfile.write("".encode())
@@ -128,7 +201,23 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        method_mapper[resource]["delete"](id, resource)
+        # Delete a single animal from the list
+        if resource == "animals":
+            delete_animal(id)
+
+        # Delete a single location from the list
+        if resource == "locations":
+            delete_location(id)
+
+        # Delete a single employee from the list
+        if resource == "employees":
+            delete_employee(id)
+
+        # Delete a single customer from the list
+        if resource == "customers":
+            self._set_headers(405)
+            self.wfile.write("Not Allowed".encode())
+            return
 
         # Set a 204 response code
         self._set_headers(204)
