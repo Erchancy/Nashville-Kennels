@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from models import Animal
+from models import Animal, Customer, Employee, Location
 
 DATABASE = {
     "animals": [
@@ -141,7 +141,8 @@ def delete(id, resource):
     if resource_index >= 0:
         resource_list.pop(resource_index)
 
-def get_all_animals():
+
+def get_all_animals(resource):
     # Open a connection to the database
     with sqlite3.connect("./kennel.sqlite3") as conn:
 
@@ -150,19 +151,50 @@ def get_all_animals():
         db_cursor = conn.cursor()
 
         # Write the SQL query to get the information you want
-        db_cursor.execute("""
-        SELECT
-            a.id,
-            a.name,
-            a.breed,
-            a.status,
-            a.location_id,
-            a.customer_id
-        FROM animal a
-        """)
+        if resource == "animals":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.breed,
+                a.status,
+                a.location_id,
+                a.customer_id
+            FROM animal a
+            """)
+
+        elif resource == "customers":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address,
+                a.email,
+                a.password
+            FROM customer a
+            """)
+
+        elif resource == "employees":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address,
+                a.location_id
+            FROM employee a
+            """)
+
+        elif resource == "locations":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address
+            FROM location a
+            """)
 
         # Initialize an empty list to hold all animal representations
-        animals = []
+        resource_lists = []
 
         # Convert rows of data into a Python list
         dataset = db_cursor.fetchall()
@@ -174,39 +206,135 @@ def get_all_animals():
             # Note that the database fields are specified in
             # exact order of the parameters defined in the
             # Animal class above.
-            animal = Animal(row['id'], row['name'], row['breed'],
-                            row['status'], row['location_id'],
-                            row['customer_id'])
+            if resource == "animals":
+                resource_list = Animal(row['id'], row['name'], row['breed'],
+                                       row['status'], row['location_id'],
+                                       row['customer_id'])
 
-            animals.append(animal.__dict__)
+            elif resource == "customers":
+                resource_list = Customer(row['id'], row['name'], row['address'],
+                                         row['email'], row['password'])
 
-    return animals
+            elif resource == "employees":
+                resource_list = Employee(row['id'], row['name'], row['address'],
+                                         row['location_id'])
 
-def get_single_animal(id):
+            elif resource == "locations":
+                resource_list = Location(
+                    row['id'], row['name'], row['address'])
+
+            resource_lists.append(resource_list.__dict__)
+
+    return resource_lists
+
+
+def get_single_animal(resource, id):
     with sqlite3.connect("./kennel.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
         # Use a ? parameter to inject a variable's value
         # into the SQL statement.
-        db_cursor.execute("""
-        SELECT
-            a.id,
-            a.name,
-            a.breed,
-            a.status,
-            a.location_id,
-            a.customer_id
-        FROM animal a
-        WHERE a.id = ?
-        """, ( id, ))
+        # Write the SQL query to get the information you want
+        if resource == "animals":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.breed,
+                a.status,
+                a.location_id,
+                a.customer_id
+            FROM animal a
+            WHERE a.id = ?
+            """, (id, ))
 
-        # Load the single result into memory
-        data = db_cursor.fetchone()
+            # Load the single result into memory
+            data = db_cursor.fetchone()
 
-        # Create an animal instance from the current row
-        animal = Animal(data['id'], data['name'], data['breed'],
+            # Create an animal instance from the current row
+            resource_list = Animal(data['id'], data['name'], data['breed'],
                             data['status'], data['location_id'],
                             data['customer_id'])
 
-        return animal.__dict__
+        elif resource == "customers":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address,
+                a.email,
+                a.password
+            FROM customer a
+            WHERE a.id = ?
+            """, (id, ))
+
+            # Load the single result into memory
+            data = db_cursor.fetchone()
+
+            # Create an resource_list instance from the current row
+            resource_list = Customer(data['id'], data['name'], data['address'],
+                            data['email'], data['password'])
+
+        elif resource == "employees":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address,
+                a.location_id
+            FROM employee a
+            WHERE a.id = ?
+            """, (id, ))
+
+            # Load the single result into memory
+            data = db_cursor.fetchone()
+
+            # Create an resource_list instance from the current row
+            resource_list = Employee(data['id'], data['name'], data['address'],
+                            data['location_id'])
+
+        elif resource == "locations":
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.address
+            FROM location a
+            WHERE a.id = ?
+            """, (id, ))
+
+            # Load the single result into memory
+            data = db_cursor.fetchone()
+
+            # Create an resource_list instance from the current row
+            resource_list = Location(data['id'], data['name'], data['address'])
+
+        return resource_list.__dict__
+    
+def get_customers_by_email(email):
+
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        # Write the SQL query to get the information you want
+        db_cursor.execute("""
+        select
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        from Customer c
+        WHERE c.email = ?
+        """, ( email, ))
+
+        customers = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            customer = Customer(row['id'], row['name'], row['address'], row['email'] , row['password'])
+            customers.append(customer.__dict__)
+
+    return customers
