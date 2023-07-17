@@ -1,5 +1,7 @@
 from .location_requests import get_single_location
 from .customer_requests import get_single_customer
+import sqlite3
+import json
 
 ANIMALS = [
     {

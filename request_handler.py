@@ -1,9 +1,9 @@
 import json
-from repository import all, retrieve, create, update, delete
+from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 method_mapper = {
-    "animals": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
+    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
     "locations": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
     "customers": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
     "employees": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete}
@@ -23,7 +23,7 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     def get_all_or_single(self, resource, id):
         if id is not None:
-            response = method_mapper[resource]["single"](resource, id)
+            response = method_mapper[resource]["single"]( id, )
 
             if response is not None:
                 self._set_headers(200)
@@ -32,7 +32,7 @@ class HandleRequests(BaseHTTPRequestHandler):
                 response = ''
         else:
             self._set_headers(200)
-            response = method_mapper[resource]["all"](resource)
+            response = method_mapper[resource]["all"]()
 
         return response
 
