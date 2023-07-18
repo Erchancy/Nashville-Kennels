@@ -1,6 +1,6 @@
 import json
 from urllib.parse import urlparse, parse_qs
-from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email
+from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email, get_animals_by_location, get_animals_by_status, get_employees_by_location
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 method_mapper = {
@@ -62,6 +62,15 @@ class HandleRequests(BaseHTTPRequestHandler):
             # see if the query dictionary has an email key
             if query.get('email') and resource == 'customers':
                 response = get_customers_by_email(query['email'][0])
+
+            if query.get('location_id') and resource == 'employees':
+                response = get_employees_by_location(query['location_id'][0])
+
+            if query.get('location_id') and resource == 'animals':
+                response = get_animals_by_location(query['location_id'][0])
+
+            if query.get('status') and resource == 'animals':
+                response = get_animals_by_status(query['status'][0])
 
         self.wfile.write(json.dumps(response).encode())
 
