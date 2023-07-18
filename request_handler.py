@@ -1,10 +1,11 @@
 import json
 from urllib.parse import urlparse, parse_qs
-from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email, get_animals_by_location, get_animals_by_status, get_employees_by_location
+from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email,\
+    get_animals_by_location, get_animals_by_status, get_employees_by_location, delete_animal, update_animal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 method_mapper = {
-    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
+    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete_animal},
     "locations": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
     "customers": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
     "employees": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete}
@@ -56,7 +57,7 @@ class HandleRequests(BaseHTTPRequestHandler):
             else:
                 response = get_all_animals(resource)
 
-        else: # There is a ? in the path, run the query param functions
+        else:  # There is a ? in the path, run the query param functions
             (resource, query) = parsed
 
             # see if the query dictionary has an email key
@@ -94,7 +95,6 @@ class HandleRequests(BaseHTTPRequestHandler):
 
     # A method that handles any PUT request.
     def do_PUT(self):
-        self._set_headers(204)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
@@ -102,9 +102,17 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        method_mapper[resource]["update"](id, resource, post_body)
+        success = False
 
-        # Encode the new animal and send in response
+        if resource == "animals":
+            success = update_animal(id, post_body)
+        # rest of the elif's
+
+        if success:
+            self._set_headers(204)
+        else:
+            self._set_headers(404)
+
         self.wfile.write("".encode())
 
     def _set_headers(self, status):
@@ -154,7 +162,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        method_mapper[resource]["delete"](id, resource)
+        method_mapper[resource]["delete"](id)
 
         # Set a 204 response code
         self._set_headers(204)

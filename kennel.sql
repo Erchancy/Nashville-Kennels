@@ -64,3 +64,5 @@ INSERT INTO `Animal` VALUES (null, "Curly", "Treatment", "Poodle", 4, 2);
 SELECT *
 FROM animal
 WHERE id = 1;
+
+INSERT INTO `Animal` VALUES (null, "Daps", "Kennel", "Boxer", 2, 2);
