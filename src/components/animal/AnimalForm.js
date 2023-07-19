@@ -28,7 +28,7 @@ export const AnimalForm = () => {
   }, [animalId])
 
   const constructNewAnimal = () => {
-    const locationId = parseInt(animal.location_id)
+    const locationId = parseInt(animal.locationId)
 
     if (locationId === 0) {
       window.alert("Please select a location")
@@ -39,9 +39,9 @@ export const AnimalForm = () => {
           id: animal.id,
           name: animal.name,
           breed: animal.breed,
-          locationId: locationId,
+          location_id: locationId,
           status: animal.status,
-          customerId: parseInt(localStorage.getItem("kennels_customer"))
+          customer_id: parseInt(localStorage.getItem("kennels_customer"))
         })
           .then(() => navigate("/animals"))
       } else {
@@ -49,9 +49,9 @@ export const AnimalForm = () => {
         addAnimal({
           name: animal.name,
           breed: animal.breed,
-          locationId: locationId,
+          location_id: locationId,
           status: animal.status,
-          customerId: parseInt(localStorage.getItem("kennels_customer"))
+          customer_id: parseInt(localStorage.getItem("kennels_customer"))
         })
           .then(() => navigate("/animals"))
       }

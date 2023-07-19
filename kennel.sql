@@ -66,3 +66,33 @@ FROM animal
 WHERE id = 1;
 
 INSERT INTO `Animal` VALUES (null, "Daps", "Kennel", "Boxer", 2, 2);
+
+SELECT
+    e.id,
+    e.name,
+    e.address,
+    e.location_id,
+    l.name location_name,
+    l.address location_address
+FROM Employee e
+JOIN Location l
+    ON l.id = e.location_id
+
+SELECT
+    a.id,
+    a.name,
+    a.breed,
+    a.status,
+    a.location_id,
+    a.customer_id,
+	l.name location_name,
+    l.address location_address,
+    c.name customer_name,
+    c.email
+FROM Animal a
+JOIN Location l
+    ON l.id = a.location_id
+JOIN Customer c
+    ON c.id = a.customer_id
+
+SELECT * FROM Animal ORDER BY id DESC;

@@ -159,8 +159,16 @@ def get_all_animals(resource):
                 a.breed,
                 a.status,
                 a.location_id,
-                a.customer_id
-            FROM animal a
+                a.customer_id,
+                l.name location_name,
+                l.address location_address,
+                c.name customer_name,
+                c.email
+            FROM Animal a
+            JOIN Location l
+                ON l.id = a.location_id
+            JOIN Customer c
+                ON c.id = a.customer_id
             """)
 
         elif resource == "customers":
@@ -177,11 +185,15 @@ def get_all_animals(resource):
         elif resource == "employees":
             db_cursor.execute("""
             SELECT
-                a.id,
-                a.name,
-                a.address,
-                a.location_id
-            FROM employee a
+                e.id,
+                e.name,
+                e.address,
+                e.location_id,
+                l.name location_name,
+                l.address location_address
+            FROM Employee e
+            JOIN Location l
+                ON l.id = e.location_id
             """)
 
         elif resource == "locations":
@@ -194,7 +206,11 @@ def get_all_animals(resource):
             """)
 
         # Initialize an empty list to hold all animal representations
-        resource_lists = []
+        response = []
+        animals = []
+        employees = []
+        customers = []
+        locations = []
 
         # Convert rows of data into a Python list
         dataset = db_cursor.fetchall()
@@ -202,30 +218,58 @@ def get_all_animals(resource):
         # Iterate list of data returned from database
         for row in dataset:
 
-            # Create an animal instance from the current row.
-            # Note that the database fields are specified in
-            # exact order of the parameters defined in the
-            # Animal class above.
             if resource == "animals":
-                resource_list = Animal(row['id'], row['name'], row['breed'],
-                                       row['status'], row['location_id'],
-                                       row['customer_id'])
+                # Create an animal instance from the current row
+                animal = Animal(row['id'], row['name'], row['breed'], row['status'],
+                                row['location_id'], row['customer_id'])
 
-            elif resource == "customers":
-                resource_list = Customer(row['id'], row['name'], row['address'],
-                                         row['email'], row['password'])
+                # Create a Location instance from the current row
+                location = Location(
+                    row['id'], row['location_name'], row['location_address'])
 
-            elif resource == "employees":
-                resource_list = Employee(row['id'], row['name'], row['address'],
-                                         row['location_id'])
+                customer = Customer(
+                    row['id'], row['customer_name'], row['email'])
 
-            elif resource == "locations":
-                resource_list = Location(
+                # Add the dictionary representation of the location to the animal
+                animal.location = location.__dict__
+                animal.customer = customer.__dict__
+
+                # Add the dictionary representation of the animal to the list
+                animals.append(animal.__dict__)
+
+                response = animals
+
+            if resource == "employees":
+                employee = Employee(
+                    row['id'], row['name'], row['address'], row['location_id'])
+
+                # Create a Location instance from the current row
+                location = Location(
+                    row['id'], row['location_name'], row['location_address'])
+
+                employee.location = location.__dict__
+
+                employees.append(employee.__dict__)
+
+                response = employees
+
+            if resource == "customers":
+                customer = Customer(
+                    row['id'], row['name'], row['address'], row['email'], row['password'])
+                
+                customers.append(customer.__dict__)
+
+                response = customers
+
+            if resource == "locations":
+                location = Location(
                     row['id'], row['name'], row['address'])
+                
+                locations.append(location.__dict__)
 
-            resource_lists.append(resource_list.__dict__)
+                response = locations
 
-    return resource_lists
+        return response
 
 
 def get_single_animal(resource, id):
@@ -254,8 +298,8 @@ def get_single_animal(resource, id):
 
             # Create an animal instance from the current row
             resource_list = Animal(data['id'], data['name'], data['breed'],
-                            data['status'], data['location_id'],
-                            data['customer_id'])
+                                   data['status'], data['location_id'],
+                                   data['customer_id'])
 
         elif resource == "customers":
             db_cursor.execute("""
@@ -274,7 +318,7 @@ def get_single_animal(resource, id):
 
             # Create an resource_list instance from the current row
             resource_list = Customer(data['id'], data['name'], data['address'],
-                            data['email'], data['password'])
+                                     data['email'], data['password'])
 
         elif resource == "employees":
             db_cursor.execute("""
@@ -292,7 +336,7 @@ def get_single_animal(resource, id):
 
             # Create an resource_list instance from the current row
             resource_list = Employee(data['id'], data['name'], data['address'],
-                            data['location_id'])
+                                     data['location_id'])
 
         elif resource == "locations":
             db_cursor.execute("""
@@ -311,7 +355,8 @@ def get_single_animal(resource, id):
             resource_list = Location(data['id'], data['name'], data['address'])
 
         return resource_list.__dict__
-    
+
+
 def get_customers_by_email(email):
 
     with sqlite3.connect("./kennel.sqlite3") as conn:
@@ -328,16 +373,18 @@ def get_customers_by_email(email):
             c.password
         from Customer c
         WHERE c.email = ?
-        """, ( email, ))
+        """, (email, ))
 
         customers = []
         dataset = db_cursor.fetchall()
 
         for row in dataset:
-            customer = Customer(row['id'], row['name'], row['address'], row['email'] , row['password'])
+            customer = Customer(
+                row['id'], row['name'], row['address'], row['email'], row['password'])
             customers.append(customer.__dict__)
 
     return customers
+
 
 def get_employees_by_location(location_id):
 
@@ -354,16 +401,18 @@ def get_employees_by_location(location_id):
             e.location_id
         from employee e
         WHERE e.location_id = ?
-        """, ( location_id, ))
+        """, (location_id, ))
 
         employees = []
         dataset = db_cursor.fetchall()
 
         for row in dataset:
-            employee = Employee(row['id'], row['name'], row['address'], row['location_id'])
+            employee = Employee(row['id'], row['name'],
+                                row['address'], row['location_id'])
             employees.append(employee.__dict__)
 
     return employees
+
 
 def get_animals_by_location(location_id):
 
@@ -382,7 +431,7 @@ def get_animals_by_location(location_id):
             a.customer_id
         from Animal a
         WHERE a.location_id = ?
-        """, ( location_id, ))
+        """, (location_id, ))
 
         animals = []
         dataset = db_cursor.fetchall()
@@ -394,6 +443,7 @@ def get_animals_by_location(location_id):
             animals.append(animal.__dict__)
 
     return animals
+
 
 def get_animals_by_status(status):
 
@@ -412,7 +462,7 @@ def get_animals_by_status(status):
             a.customer_id
         from Animal a
         WHERE a.status = ?
-        """, ( status, ))
+        """, (status, ))
 
         animals = []
         dataset = db_cursor.fetchall()
@@ -434,6 +484,7 @@ def delete_animal(id):
         DELETE FROM animal
         WHERE id = ?
         """, (id, ))
+
 
 def update_animal(id, new_animal):
     with sqlite3.connect("./kennel.sqlite3") as conn:
@@ -462,3 +513,29 @@ def update_animal(id, new_animal):
     else:
         # Forces 204 response by main module
         return True
+
+
+def create_animal(new_animal):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        INSERT INTO Animal
+            ( name, breed, status, location_id, customer_id )
+        VALUES
+            ( ?, ?, ?, ?, ?);
+        """, (new_animal['name'], new_animal['breed'],
+              new_animal['status'], new_animal['location_id'],
+              new_animal['customer_id'], ))
+
+        # The `lastrowid` property on the cursor will return
+        # the primary key of the last thing that got added to
+        # the database.
+        id = db_cursor.lastrowid
+
+        # Add the `id` property to the animal dictionary that
+        # was sent by the client so that the client sees the
+        # primary key in the response.
+        new_animal['id'] = id
+
+    return new_animal

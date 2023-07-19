@@ -1,11 +1,11 @@
 import json
 from urllib.parse import urlparse, parse_qs
 from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email,\
-    get_animals_by_location, get_animals_by_status, get_employees_by_location, delete_animal, update_animal
+    get_animals_by_location, get_animals_by_status, get_employees_by_location, delete_animal, update_animal, create_animal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 method_mapper = {
-    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete_animal},
+    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create_animal, "update": update, "delete": delete_animal},
     "locations": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
     "customers": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
     "employees": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete}
@@ -87,7 +87,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        response = method_mapper[resource]["create"](resource, post_body)
+        response = method_mapper[resource]["create"](post_body)
 
         self._set_headers(201)
         # Encode the new animal and send in response
