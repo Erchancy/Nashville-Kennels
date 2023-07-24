@@ -1,14 +1,14 @@
 import json
 from urllib.parse import urlparse, parse_qs
-from repository import all, retrieve, create, update, delete, get_all_animals, get_single_animal, get_customers_by_email,\
+from repository import all, retrieve, create, update, delete, get_customers_by_email,\
     get_animals_by_location, get_animals_by_status, get_employees_by_location, delete_animal, update_animal, create_animal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 method_mapper = {
-    "animals": {"single": get_single_animal, "all": get_all_animals, "create": create_animal, "update": update, "delete": delete_animal},
-    "locations": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
-    "customers": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete},
-    "employees": {"single": get_single_animal, "all": get_all_animals, "create": create, "update": update, "delete": delete}
+    "animals": {"single": retrieve, "all": all, "create": create_animal, "update": update, "delete": delete_animal},
+    "locations": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
+    "customers": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete},
+    "employees": {"single": retrieve, "all": all, "create": create, "update": update, "delete": delete}
 }
 
 # Here's a class. It inherits from another class.
@@ -49,29 +49,12 @@ class HandleRequests(BaseHTTPRequestHandler):
         parsed = self.parse_url(self.path)
 
         # If the path does not include a query parameter, continue with the original if block
-        if '?' not in self.path:
-            (resource, id) = parsed
+        (resource, id, query_params) = parsed
 
-            if id is not None:
-                response = get_single_animal(resource, id)
-            else:
-                response = get_all_animals(resource)
-
-        else:  # There is a ? in the path, run the query param functions
-            (resource, query) = parsed
-
-            # see if the query dictionary has an email key
-            if query.get('email') and resource == 'customers':
-                response = get_customers_by_email(query['email'][0])
-
-            if query.get('location_id') and resource == 'employees':
-                response = get_employees_by_location(query['location_id'][0])
-
-            if query.get('location_id') and resource == 'animals':
-                response = get_animals_by_location(query['location_id'][0])
-
-            if query.get('status') and resource == 'animals':
-                response = get_animals_by_status(query['status'][0])
+        if id is not None:
+            response = retrieve(resource, id)
+        else:
+            response = all(resource, query_params)
 
         self.wfile.write(json.dumps(response).encode())
 
@@ -85,7 +68,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         post_body = json.loads(post_body)
 
         # Parse the URL
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         response = method_mapper[resource]["create"](post_body)
 
@@ -100,7 +83,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         post_body = json.loads(post_body)
 
         # Parse the URL
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         success = False
 
@@ -141,26 +124,29 @@ class HandleRequests(BaseHTTPRequestHandler):
         self.end_headers()
 
     def parse_url(self, path):
-        """Parse the url into the resource and id"""
-        parsed_url = urlparse(path)
-        path_params = parsed_url.path.split('/')  # ['', 'animals', 1]
-        resource = path_params[1]
+        url_components = urlparse(path)
+        path_params = url_components.path.strip("/").split("/")
+        query_params = []
 
-        if parsed_url.query:
-            query = parse_qs(parsed_url.query)
-            return (resource, query)
+        if url_components.query != '':
+            query_params = url_components.query.split("&")
 
-        pk = None
+        resource = path_params[0]
+        id = None
+
         try:
-            pk = int(path_params[2])
-        except (IndexError, ValueError):
-            pass
-        return (resource, pk)
+            id = int(path_params[1])
+        except IndexError:
+            pass  # No route parameter exists: /animals
+        except ValueError:
+            pass  # Request had trailing slash: /animals/
+
+        return (resource, id, query_params)
 
     def do_DELETE(self):
 
         # Parse the URL
-        (resource, id) = self.parse_url(self.path)
+        (resource, id, query_params) = self.parse_url(self.path)
 
         method_mapper[resource]["delete"](id)
 

@@ -95,4 +95,10 @@ JOIN Location l
 JOIN Customer c
     ON c.id = a.customer_id
 
-SELECT * FROM Animal ORDER BY id DESC;
+SELECT l.*, COUNT(a.id) AS animals
+FROM Location l
+JOIN Animal a
+    ON a.location_id = l.id
+GROUP BY l.id;
+
+DROP TABLE Animal;

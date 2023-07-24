@@ -73,25 +73,6 @@ DATABASE = {
 }
 
 
-def all(resource):
-    """For GET requests to collection"""
-    return DATABASE[resource]
-
-
-def retrieve(resource, id):
-    """For GET requests to a single resource"""
-    # Variable to hold the found animal, if it exists
-    requested_resource = None
-
-    resource_list = DATABASE[resource]
-
-    for single_resource in resource_list:
-        if single_resource["id"] == id:
-            requested_resource = single_resource
-
-    return requested_resource
-
-
 def create(resource, post_body):
     """For POST requests to a collection"""
     resource_list = DATABASE[resource]
@@ -142,17 +123,62 @@ def delete(id, resource):
         resource_list.pop(resource_index)
 
 
-def get_all_animals(resource):
+def all(resource, query_params):
     # Open a connection to the database
     with sqlite3.connect("./kennel.sqlite3") as conn:
-
-        # Just use these. It's a Black Box.
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
+        sort_by = ""
+        where_clause = ""
+
+        if len(query_params) != 0:
+            param = query_params[0]
+            [qs_key, qs_value] = param.split("=")
+
+            if resource == "animals":
+                if qs_key == "_sortBy":
+                    if qs_value == 'location':
+                        sort_by = " ORDER BY location_id"
+                    if qs_value == 'customer':
+                        sort_by = " ORDER BY customer_id"
+                    if qs_value == 'status':
+                        sort_by = " ORDER BY status"
+                    if qs_value == 'name':
+                        sort_by = " ORDER BY name"
+                    if qs_value == 'breed':
+                        sort_by = " ORDER BY breed"
+                if qs_key == "location_id":
+                    where_clause = f"WHERE a.location_id = {qs_value}"
+                if qs_key == "customer_id":
+                    where_clause = f"WHERE a.customer_id = {qs_value}"
+                if qs_key == "status":
+                    where_clause = f"WHERE a.status = '{qs_value}'"
+                if qs_key == "breed":
+                    where_clause = f"WHERE a.breed = '{qs_value}'"
+                if qs_key == "name":
+                    where_clause = f"WHERE a.name = '{qs_value}'"
+
+            if resource == "customers":
+                if qs_key == "_sortBy":
+                    if qs_value == 'location':
+                        sort_by = " ORDER BY location_id"
+                    if qs_value == 'name':
+                        sort_by = " ORDER BY name"
+                    if qs_value == 'address':
+                        sort_by = " ORDER BY address"
+                    if qs_value == 'email':
+                        sort_by = " ORDER BY email"
+                if qs_key == "email":
+                    where_clause = f"WHERE c.email = '{qs_value}'"
+                if qs_key == "name":
+                    where_clause = f"WHERE c.name = '{qs_value}'"
+                if qs_key == "address":
+                    where_clause = f"WHERE c.address = '{qs_value}'"
+
         # Write the SQL query to get the information you want
         if resource == "animals":
-            db_cursor.execute("""
+            query = (f"""
             SELECT
                 a.id,
                 a.name,
@@ -169,21 +195,25 @@ def get_all_animals(resource):
                 ON l.id = a.location_id
             JOIN Customer c
                 ON c.id = a.customer_id
+            {where_clause}
+            {sort_by}
             """)
 
         elif resource == "customers":
-            db_cursor.execute("""
+            query = (f"""
             SELECT
-                a.id,
-                a.name,
-                a.address,
-                a.email,
-                a.password
-            FROM customer a
+                c.id,
+                c.name,
+                c.address,
+                c.email,
+                c.password
+            FROM Customer c
+            {where_clause}
+            {sort_by}       
             """)
 
         elif resource == "employees":
-            db_cursor.execute("""
+            query = (f"""
             SELECT
                 e.id,
                 e.name,
@@ -194,16 +224,22 @@ def get_all_animals(resource):
             FROM Employee e
             JOIN Location l
                 ON l.id = e.location_id
+            {where_clause}
+            {sort_by}
             """)
 
         elif resource == "locations":
-            db_cursor.execute("""
-            SELECT
-                a.id,
-                a.name,
-                a.address
-            FROM location a
+            query = (f"""
+            SELECT l.*, COUNT(a.id) AS animals
+            FROM Location l
+            JOIN Animal a
+                ON a.location_id = l.id
+            GROUP BY l.id
+            {where_clause}
+            {sort_by}
             """)
+
+        db_cursor.execute(query)
 
         # Initialize an empty list to hold all animal representations
         response = []
@@ -256,15 +292,14 @@ def get_all_animals(resource):
             if resource == "customers":
                 customer = Customer(
                     row['id'], row['name'], row['address'], row['email'], row['password'])
-                
+
                 customers.append(customer.__dict__)
 
                 response = customers
 
             if resource == "locations":
-                location = Location(
-                    row['id'], row['name'], row['address'])
-                
+                location = Location(row['id'], row['name'], row['address'])
+                location.animals = row['animals']  # Add the animal count to the location object
                 locations.append(location.__dict__)
 
                 response = locations
@@ -272,7 +307,7 @@ def get_all_animals(resource):
         return response
 
 
-def get_single_animal(resource, id):
+def retrieve(resource, id):
     with sqlite3.connect("./kennel.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
@@ -365,13 +400,13 @@ def get_customers_by_email(email):
 
         # Write the SQL query to get the information you want
         db_cursor.execute("""
-        select
+        SELECT
             c.id,
             c.name,
             c.address,
             c.email,
             c.password
-        from Customer c
+        FROM Customer c
         WHERE c.email = ?
         """, (email, ))
 
@@ -394,12 +429,12 @@ def get_employees_by_location(location_id):
 
         # Write the SQL query to get the information you want
         db_cursor.execute("""
-        select
+        SELECT
             e.id,
             e.name,
             e.address,
             e.location_id
-        from employee e
+        FROM Employee e
         WHERE e.location_id = ?
         """, (location_id, ))
 
@@ -422,14 +457,14 @@ def get_animals_by_location(location_id):
 
         # Write the SQL query to get the information you want
         db_cursor.execute("""
-        select
+        SELECT
             a.id,
             a.name,
             a.breed,
             a.status,
             a.location_id,
             a.customer_id
-        from Animal a
+        FROM Animal a
         WHERE a.location_id = ?
         """, (location_id, ))
 
@@ -453,14 +488,14 @@ def get_animals_by_status(status):
 
         # Write the SQL query to get the information you want
         db_cursor.execute("""
-        select
+        SELECT
             a.id,
             a.name,
             a.breed,
             a.status,
             a.location_id,
             a.customer_id
-        from Animal a
+        FROM Animal a
         WHERE a.status = ?
         """, (status, ))
 
